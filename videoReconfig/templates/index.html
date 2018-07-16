@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="content-type" content="no-cache, must-revalidate" />
+    <meta http-equiv="expires" content="Wed, 26 Feb 1997 08:21:57 GMT"/>
+</head>
+
+<body>
+    <video id="video"></video>
+    <div id="output"></div>
+    <video id="returnVideo" autoplay></video>
+    <script src="jquery.js"></script>
+    <script src="socket.js"></script>
+    <script>
+    //socket 通信
+    var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+   
+
+    var output = $("#output");
+    var scale = 1;
+    video = document.getElementById("video")
+    //获取视屏失败
+    var errBack = function(error) {
+        console.log("Video capture error: ", error.code);
+    };
+    navigator.mediaDevices.getUserMedia({ audio: true, video: true }).
+    then(function(mediaStream) {
+            var video = document.querySelector('video');
+            video.src = window.URL.createObjectURL(mediaStream);
+            video.play();
+            var img = document.createElement("img");
+            output.prepend(img);
+            video.onloadedmetadata = function(e) {
+            setInterval(function(){
+            var canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth * scale;
+                canvas.height = video.videoHeight * scale;
+                canvas.getContext('2d')
+                .drawImage(video, 0, 0, canvas.width, canvas.height);
+                 
+                socket.on('connect', function() {
+                    socket.emit('my event', {"data": canvas.toDataURL()});
+                    socket.on('my response', function(data) {
+                    img.src="data:image/jpg;base64,"+data.res
+                    console.log("my response",img.src)
+                    })
+    });
+                
+                },3000)
+                
+            };
+        })
+        .catch(
+            function(err) {
+                console.log(err.name);
+            }
+        );
+    </script>
+</body>
+
+</html>
